@@ -1,0 +1,323 @@
+ <!DOCTYPE=html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:mso="urn:schemas-microsoft-com:office:office" xmlns:msdt="uuid:C2F41010-65B3-11d1-A29F-00AA00C14882"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<style>
+body{
+  font-family: arial;
+}
+textarea{
+  font-family: arial;
+  height: 100px;
+  width: 200px;
+}
+</style>
+<!--[if gte mso 9]><xml>
+<mso:CustomDocumentProperties>
+<mso:_dlc_DocId msdt:dt="string">YKHNPT654DDW-178557984-337</mso:_dlc_DocId>
+<mso:_dlc_DocIdItemGuid msdt:dt="string">28f784a4-8d4b-421a-ab33-6fe083899c47</mso:_dlc_DocIdItemGuid>
+<mso:_dlc_DocIdUrl msdt:dt="string">http://tnoshare.twcable.com/ServiceActivation/_layouts/DocIdRedir.aspx?ID=YKHNPT654DDW-178557984-337, YKHNPT654DDW-178557984-337</mso:_dlc_DocIdUrl>
+</mso:CustomDocumentProperties>
+</xml><![endif]-->
+</head>
+<style>
+h1 {font-size:40px;}
+</style>
+<body>
+<h2>**NOTE**</h2><br>If you run into an issue where an error pops up referencing MEP you will need to shutdown the active MEP configuration:<br>
+<br><b><I># cli error: Flows must be active while attached to active mep</b></I><br>
+<br>First go into the OAM configuration and run your info command to see what domain, association and MEP the flow is in:<br>
+<p> <I>>config>oam <br>>config>oam>info<br>
+ maintenance-domain X<br> name string "UNI-UNI"<br> maintenance-association X<br> name string "33.L1XX.006429..TWCC"<br> mep X<br> bind ethernet 3<br> flow uni-direction rx "33.L1XX.006429..TWCC-out"<br> flow uni-direction tx "33.L1XX.006429..TWCC-in"<br> </p> <br>>config>oam>cfm>md(X)# maintenance-association X<br> >config>oam>cfm>md(X)>ma(X)# mep (X)<br> >config>oam>cfm>md(X)>ma(X)>mep(X)# shutdown</I> </p> <br> <br> 
+<table>
+  <tbody>
+  <tr>
+    <td>Uplink Port: </td>
+    <td><input type="text" id="ni"></td>
+  </tr>
+  <tr>
+    <td>Customer Port: </td>
+    <td><input type="text" id="uni"></td>
+  </tr>
+  <tr>
+    <td>VLAN: </td>
+    <td><input type="text" id="vlan"></td>
+  </tr>
+  <tr>
+    <td>In Classifier: </td>
+    <td><input type="text" id="inClass"></td>
+  </tr>
+  <tr>
+    <td>Out Classifier: </td>
+    <td><input type="text" id="outClass"></td>
+  </tr>
+  <tr>
+    <td>In Flow: </td>
+    <td><input type="text" id="inFlow"></td>
+  </tr>
+  <tr>
+    <td>Out Flow: </td>
+    <td><input type="text" id="outFlow"></td>
+  </tr>
+  <tr>
+    <td>Policer Name </td>
+    <td><input type="text" id="qos"></td>
+  </tr>
+  <tr>
+    <td>IPv4 Address / Mask: </td>
+    <td><input type="text" id="ip"> <button onclick="noIP()">Use Generic</button></td>
+  </tr>
+  <tr>
+    <td>Is Brighthouse? </td>
+    <td><input type="checkbox" id="bhn"></td>
+  </tr>
+</tbody></table>
+<br>
+<button onclick="bhnCheck(event)" type="submit">Build</button>
+<br>
+<table>
+  <tbody><tr>
+    <th>Create Bridge</th>
+    <th>Normalize Circuit</th>
+  </tr>
+  <tr>
+    <td><textarea id="bridge" onclick="clickToCopy('bridge');"></textarea></td>
+    <td><textarea id="normalize" onclick="clickToCopy('normalize');"></textarea></td>
+  </tr>
+</tbody></table>
+Click in the boxes above and use Ctrl + C to copy to clipboard.
+<br>
+<br>
+ <button onclick="clearAll()">Clear</button>
+<br>
+<br>
+<br>
+<br>
+<script>
+function bhnCheck(){
+  var bhn = document.getElementById("bhn");
+  if (bhn.checked == true) {
+    bhnBuildScripts();
+  } else {
+    buildScripts();
+  }
+}
+function noIP(){
+  document.getElementById('ip').value = '10.0.0.1/30';
+}
+function clearAll(){
+  document.getElementById('ni').value = '';
+  document.getElementById('uni').value = '';
+  document.getElementById('vlan').value = '';
+  document.getElementById('inClass').value = '';
+  document.getElementById('outClass').value = '';
+  document.getElementById('inFlow').value = '';
+  document.getElementById('outFlow').value = '';
+  document.getElementById('qos').value = '';
+  document.getElementById('ip').value = '';
+  bridge.innerHTML = '';
+  normalize.innerHTML = '';
+  //document.getElementById('bridge').value = '';
+  //document.getElementById('normalize').value = '';
+}
+function buildScripts() {
+  var ni = document.getElementById('ni').value;
+  var uni = document.getElementById('uni').value;
+  var vlan = document.getElementById('vlan').value;
+  var inClass = document.getElementById('inClass').value;
+  var outClass = document.getElementById('outClass').value;
+  var inFlow = document.getElementById('inFlow').value;
+  var outFlow = document.getElementById('outFlow').value;
+  var qos = document.getElementById('qos').value;
+  var ip = document.getElementById('ip').value;
+  var bridge = document.getElementById('bridge');
+  var normalize = document.getElementById('normalize');
+  var nl = "\n";
+
+  bridge.innerHTML = 'configure bridge 1' + nl
+    + 'name "BR1"' + nl
+    + 'port 1 no shutdown' + nl
+    + 'port 1 name "svi2"' + nl
+    + 'port 2 no shutdown' + nl
+    + 'port 2 name ' + ni + nl
+    + 'port  3 no shutdown' + nl
+    + 'port 3 name ' + uni + nl
+    + 'vlan ' + vlan + nl
+    + 'maximum-mac-addresses 10' + nl
+    + 'exit all' + nl
+    + 'configure port svi 2' + nl
+    + 'name "REFLECTOR"' + nl
+    + 'no shutdown' + nl
+    + 'exit all' + nl
+    + 'conf flow' + nl
+    + 'flow ' + inFlow + nl
+    + 'shutdown' + nl
+    + 'exit' + nl
+    + 'flow ' + outFlow + nl
+    + 'shutdown' + nl
+    + 'exit all' + nl
+    + 'configure flows classifier-profile "untagged" match-any match untagged' + nl
+    + 'exit all' + nl
+    + 'configure flows flow "test-p1" classifier "untagged"' + nl
+    + 'configure flows flow "test-p1" no policer' + nl
+    + 'configure flows flow "test-p1" ingress-port svi 2' + nl
+    + 'configure flows flow "test-p1" egress-port bridge-port 1 1' + nl
+    + 'configure flows flow "test-p1" vlan-tag push vlan ' + vlan + ' p-bit fixed 7' + nl
+    + 'configure flows flow "test-p1" reverse-direction' + nl
+    + 'configure flows flow "test-p1" no shutdown' + nl
+    + 'configure flows flow "test-p2" classifier ' + outClass + nl
+    + 'configure flows flow "test-p2" policer profile ' + qos + nl
+    + 'configure flows flow "test-p2" ingress-port ethernet ' + ni + nl
+    + 'configure flows flow "test-p2" egress-port bridge-port 1 2' + nl
+    + 'configure flows flow "test-p2" reverse-direction block 0/1' + nl
+    + 'configure flows flow "test-p2" no shutdown' + nl
+    + 'configure flows flow "test-p3" classifier ' + inClass + nl
+    + 'configure flows flow "test-p3" policer profile ' + qos + nl
+    + 'configure flows flow "test-p3" ingress-port ethernet ' + uni + nl
+    + 'configure flows flow "test-p3" egress-port bridge-port 1 3' + nl
+    + 'configure flows flow "test-p3" vlan-tag push vlan ' + vlan +' p-bit fixed 7' + nl
+    + 'configure flows flow "test-p3" reverse-direction block 0/1' + nl
+    + 'configure flows flow "test-p3" no shutdown' + nl
+    + 'configure router 1 interface 2 name "REFLECTOR::::"' + nl
+    + 'configure router 1 interface 2 bind svi 2' + nl
+    + 'configure router 1 interface 2 address ' + ip + nl
+    + 'configure router 1 interface 2 no shutdown' + nl
+    + 'exit all'+ nl
+    + 'show configure bridge 1 mac-table';
+  normalize.innerHTML = 'exit all' + nl
+    + 'configure router 1 interface 2' + nl
+    + 'shut' + nl
+    + 'exit' + nl
+    + 'no interface 2' + nl
+    + 'exit all' + nl
+    + 'conf flow' + nl
+    + 'flow test-p3' + nl
+    + 'shutdown' + nl
+    + 'exit' + nl
+    + 'no flow test-p3' + nl
+    + 'flow test-p2' + nl
+    + 'shutdown' + nl
+    + 'exit' + nl
+    + 'no flow test-p2' + nl
+    + 'flow test-p1' + nl
+    + 'shutdown' + nl
+    + 'exit' + nl
+    + 'no flow test-p1' + nl
+    + 'flow ' + inFlow + nl
+    + 'no shutdown' + nl
+    + 'exit' + nl
+    + 'flow ' + outFlow + nl
+    + 'no shutdown' + nl
+    + 'exit all' + nl
+    + 'conf port' + nl
+    + 'no svi 2' + nl
+    + 'exit all' + nl
+    + 'configure bridge 1' + nl
+    + 'no port 1' + nl
+    + 'no port 2' + nl
+    + 'no port 3' + nl
+    + 'exit' + nl
+    + 'no bridge 1' + nl
+    + 'exit all';
+}
+function bhnBuildScripts(){
+  var ni = document.getElementById('ni').value;
+  var uni = document.getElementById('uni').value;
+  var vlan = document.getElementById('vlan').value;
+  var inClass = document.getElementById('inClass').value;
+  var outClass = document.getElementById('outClass').value;
+  var inFlow = document.getElementById('inFlow').value;
+  var outFlow = document.getElementById('outFlow').value;
+  var qos = document.getElementById('qos').value;
+  var ip = document.getElementById('ip').value;
+  var bridge = document.getElementById('bridge');
+  var normalize = document.getElementById('normalize');
+  var nl = "\n";
+
+  bridge.innerHTML = 'configure bridge 1' + nl
+    + 'name "BR1"' + nl
+    + 'port 3 no shutdown' + nl
+    + 'port 3 name "svi2"' + nl
+    + 'port 4 no shutdown' + nl
+    + 'port 4 name ' + ni + nl
+    + 'port 5 no shutdown' + nl
+    + 'port 5 name ' + uni + nl
+    + 'vlan ' + vlan + nl
+    + 'maximum-mac-addresses 10' + nl
+    + 'exit all' + nl
+    + 'configure port svi 2' + nl
+    + 'name "REFLECTOR"' + nl
+    + 'no shutdown' + nl
+    + 'exit all' + nl
+    + 'conf flow' + nl
+    + 'flow ' + inFlow + nl
+    + 'shutdown' + nl
+    + 'exit' + nl
+    + 'flow ' + outFlow + nl
+    + 'shutdown' + nl
+    + 'exit all' + nl
+    + 'configure flows classifier-profile "untagged" match-any match untagged' + nl
+    + 'exit all' + nl
+    + 'configure flows flow "test-p1" classifier "untagged"' + nl
+    + 'configure flows flow "test-p1" no policer' + nl
+    + 'configure flows flow "test-p1" ingress-port svi 2' + nl
+    + 'configure flows flow "test-p1" egress-port bridge-port 1 1' + nl
+    + 'configure flows flow "test-p1" vlan-tag push vlan ' + vlan + ' p-bit fixed 7' + nl
+    + 'configure flows flow "test-p1" reverse-direction' + nl
+    + 'configure flows flow "test-p1" no shutdown' + nl
+    + 'configure flows flow "test-p2" classifier ' + outClass + nl
+    + 'configure flows flow "test-p2" policer profile ' + qos + nl
+    + 'configure flows flow "test-p2" ingress-port ethernet ' + ni + nl
+    + 'configure flows flow "test-p2" egress-port bridge-port 1 2' + nl
+    + 'configure flows flow "test-p2" reverse-direction block 0/1' + nl
+    + 'configure flows flow "test-p2" no shutdown' + nl
+    + 'configure flows flow "test-p3" classifier ' + inClass + nl
+    + 'configure flows flow "test-p3" policer profile ' + qos + nl
+    + 'configure flows flow "test-p3" ingress-port ethernet ' + uni + nl
+    + 'configure flows flow "test-p3" egress-port bridge-port 1 3' + nl
+    + 'configure flows flow "test-p3" vlan-tag push vlan ' + vlan +' p-bit fixed 7' + nl
+    + 'configure flows flow "test-p3" reverse-direction block 0/1' + nl
+    + 'configure flows flow "test-p3" no shutdown' + nl
+    + 'exit all'+ nl
+    + 'show configure bridge 1 mac-table';
+  normalize.innerHTML = 'exit all' + nl
+    + 'conf flow' + nl
+    + 'flow test-p3' + nl
+    + 'shutdown' + nl
+    + 'exit' + nl
+    + 'no flow test-p3' + nl
+    + 'flow test-p2' + nl
+    + 'shutdown' + nl
+    + 'exit' + nl
+    + 'no flow test-p2' + nl
+    + 'flow test-p1' + nl
+    + 'shutdown' + nl
+    + 'exit' + nl
+    + 'no flow test-p1' + nl
+    + 'flow ' + inFlow + nl
+    + 'no shutdown' + nl
+    + 'exit' + nl
+    + 'flow ' + outFlow + nl
+    + 'no shutdown' + nl
+    + 'exit all' + nl
+    + 'conf port' + nl
+    + 'no svi 2' + nl
+    + 'exit all' + nl
+    + 'configure bridge 1' + nl
+    + 'no port 3' + nl
+    + 'no port 4' + nl
+    + 'no port 5' + nl
+    + 'exit all';
+}
+
+function clickToCopy(id){
+  document.getElementById(id).select();
+}
+</script>
+<font color='red'>NOTE:</font> If the final command in the Create Bridge script throws an "unrecognized" command, replace it with the following variant:
+<br>
+<br>
+<input type="text" id="variant" onclick="clickToCopy('variant')" value="show mac-address-table all">
+<br>
+<br>
+<h1>DON'T FORGET TO ROLLBACK!</h1>
+</body>
+</html>
